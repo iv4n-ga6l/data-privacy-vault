@@ -18,7 +18,7 @@ struct TokenizeResponse {
 }
 
 #[post("/tokenize")]
-async fn tokenize(req: web::Json<TokenizeRequest>) -> impl Responder {
+pub async fn tokenize(req: web::Json<TokenizeRequest>) -> impl Responder {
     if let Some(format) = &req.format {
         if let Err(err) = validate_data_format(&req.data, format) {
             return HttpResponse::BadRequest().body(format!("Invalid data format: {}", err));
@@ -60,7 +60,7 @@ struct DetokenizeField {
 }
 
 #[post("/detokenize")]
-async fn detokenize(req: web::Json<DetokenizeRequest>) -> impl Responder {
+pub async fn detokenize(req: web::Json<DetokenizeRequest>) -> impl Responder {
     let mut detokenized_data = HashMap::new();
 
     for (key, token) in &req.data {

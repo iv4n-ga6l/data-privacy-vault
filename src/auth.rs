@@ -1,9 +1,13 @@
-use actix_web::{dev::ServiceRequest, dev::ServiceResponse, Error, HttpMessage, HttpResponse};
+use actix_web::{
+    body::EitherBody,
+    dev::ServiceRequest,
+    dev::ServiceResponse,
+    Error,
+    HttpResponse,
+};
 use actix_service::{Service, Transform};
-use futures::future::{ok, Ready};
+use futures::future::{ok, LocalBoxFuture, Ready};
 use std::collections::HashMap;
-use std::future::{ready, Future};
-use std::pin::Pin;
 use std::task::{Context, Poll};
 use lazy_static::lazy_static;
 use std::sync::RwLock;
@@ -11,8 +15,8 @@ use std::sync::RwLock;
 lazy_static! {
     static ref API_KEYS: RwLock<HashMap<String, String>> = {
         let mut keys = HashMap::new();
-        keys.insert("writer-key-123", "writer".to_string());
-        keys.insert("reader-key-456", "reader".to_string());
+        keys.insert("writer-key-123".to_string(), "writer".to_string());
+        keys.insert("reader-key-456".to_string(), "reader".to_string());
         RwLock::new(keys)
     };
 }
@@ -24,14 +28,14 @@ where
     S: Service<ServiceRequest, Response = ServiceResponse<B>, Error = Error>,
     S::Future: 'static,
 {
-    type Response = ServiceResponse<B>;
+    type Response = ServiceResponse<EitherBody<B>>;
     type Error = Error;
     type Transform = AuthMiddlewareService<S>;
     type InitError = ();
     type Future = Ready<Result<Self::Transform, Self::InitError>>;
 
     fn new_transform(&self, service: S) -> Self::Future {
-        ready(Ok(AuthMiddlewareService { service }))
+        ok(AuthMiddlewareService { service })
     }
 }
 
@@ -44,15 +48,15 @@ where
     S: Service<ServiceRequest, Response = ServiceResponse<B>, Error = Error>,
     S::Future: 'static,
 {
-    type Response = ServiceResponse<B>;
+    type Response = ServiceResponse<EitherBody<B>>;
     type Error = Error;
-    type Future = Pin<Box<dyn Future<Output = Result<Self::Response, Self::Error>>>>;
+    type Future = LocalBoxFuture<'static, Result<Self::Response, Self::Error>>;
 
-    fn poll_ready(&mut self, cx: &mut Context<'_>) -> Poll<Result<(), Error>> {
+    fn poll_ready(&self, cx: &mut Context<'_>) -> Poll<Result<(), Error>> {
         self.service.poll_ready(cx)
     }
 
-    fn call(&mut self, req: ServiceRequest) -> Self::Future {
+    fn call(&self, req: ServiceRequest) -> Self::Future {
         let api_key = req.headers().get("x-api-key").and_then(|v| v.to_str().ok());
         let role = api_key.and_then(|key| API_KEYS.read().unwrap().get(key).cloned());
 
@@ -66,11 +70,11 @@ where
             let fut = self.service.call(req);
             Box::pin(async move {
                 let res = fut.await?;
-                Ok(res)
+                Ok(res.map_into_left_body())
             })
         } else {
             Box::pin(async move {
-                Ok(req.into_response(HttpResponse::Unauthorized().finish().into_body()))
+                Ok(req.into_response(HttpResponse::Unauthorized().finish()).map_into_right_body())
             })
         }
     }
