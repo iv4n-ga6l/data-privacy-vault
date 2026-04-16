@@ -1,4 +1,4 @@
-use redis::{Commands, Connection, RedisResult};
+use redis::{Commands, RedisResult};
 use crate::encryption::{encrypt, decrypt};
 use crate::config::get_redis_connection;
 

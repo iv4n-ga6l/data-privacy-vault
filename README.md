@@ -39,6 +39,12 @@ The **Data Privacy Vault** is a secure and efficient service designed to tokeniz
    AWS_REGION=<your-aws-region>
    ```
 
+   For local development or test runs without AWS KMS, omit `KMS_KEY_ID` and optionally set:
+   ```env
+   LOCAL_ENCRYPTION_KEY=<any-stable-32-byte-ish-secret>
+   ```
+   If `KMS_KEY_ID` is not set, the service uses a local symmetric key instead of calling AWS KMS.
+
 3. **Build and Run the Application**:
    Using Docker:
    ```bash
