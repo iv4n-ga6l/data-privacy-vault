@@ -31,7 +31,7 @@ async fn test_tokenize_with_format_validation() {
     let tokenized_data: serde_json::Value = test::read_body_json(resp).await;
     for (key, token) in tokenized_data["data"].as_object().unwrap() {
         let original_value = payload["data"][key].as_str().unwrap();
-        assert_eq!(retrieve_original_data(token).unwrap(), original_value);
+        assert_eq!(retrieve_original_data(token).await.unwrap(), original_value);
     }
 }
 
@@ -67,7 +67,7 @@ async fn test_detokenize_success() {
 
     let token = "test-token";
     let original_value = "original-value";
-    store_tokenized_data(token.to_string(), original_value.to_string());
+    store_tokenized_data(token.to_string(), original_value.to_string()).await;
 
     let payload = json!({
         "id": "req-67890",

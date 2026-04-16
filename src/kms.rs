@@ -1,4 +1,5 @@
 use aws_sdk_kms::{Client, Error};
+use aws_sdk_kms::types::DataKeySpec;
 use std::env;
 
 pub async fn get_encryption_key() -> Result<Vec<u8>, Error> {
@@ -10,7 +11,7 @@ pub async fn get_encryption_key() -> Result<Vec<u8>, Error> {
     let response = client
         .generate_data_key()
         .key_id(key_id)
-        .key_spec("AES_256")
+        .key_spec(DataKeySpec::Aes256)
         .send()
         .await?;
 

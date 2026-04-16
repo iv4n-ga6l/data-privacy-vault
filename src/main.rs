@@ -1,9 +1,6 @@
-use actix_web::{web, App, HttpServer, middleware};
-
-mod routes;
-mod storage;
-mod utils;
-mod auth;
+use actix_web::{middleware, App, HttpServer};
+use data_privacy_vault::auth;
+use data_privacy_vault::routes;
 
 #[actix_web::main]
 async fn main() -> std::io::Result<()> {

@@ -30,7 +30,7 @@ async fn tokenize(req: web::Json<TokenizeRequest>) -> impl Responder {
     for (key, value) in &req.data {
         let token = generate_token(value);
         tokenized_data.insert(key.clone(), token.clone());
-        store_tokenized_data(token, value.clone());
+        store_tokenized_data(token, value.clone()).await;
     }
 
     let response = TokenizeResponse {
@@ -64,7 +64,7 @@ async fn detokenize(req: web::Json<DetokenizeRequest>) -> impl Responder {
     let mut detokenized_data = HashMap::new();
 
     for (key, token) in &req.data {
-        if let Some(original_value) = retrieve_original_data(token) {
+        if let Some(original_value) = retrieve_original_data(token).await {
             detokenized_data.insert(
                 key.clone(),
                 DetokenizeField {
