@@ -1,6 +1,7 @@
 use actix_web::{test, App};
 use serde_json::json;
 use data_privacy_vault::routes::{tokenize, detokenize};
+use data_privacy_vault::storage::{store_tokenized_data, retrieve_original_data};
 
 #[actix_web::test]
 async fn test_tokenize_endpoint() {
@@ -21,17 +22,28 @@ async fn test_tokenize_endpoint() {
 
     let resp = test::call_service(&app, req).await;
     assert!(resp.status().is_success());
+
+    // Verify data is stored in Redis
+    let tokenized_data: serde_json::Value = test::read_body_json(resp).await;
+    for (key, token) in tokenized_data["data"].as_object().unwrap() {
+        let original_value = payload["data"][key].as_str().unwrap();
+        assert_eq!(retrieve_original_data(token).unwrap(), original_value);
+    }
 }
 
 #[actix_web::test]
 async fn test_detokenize_endpoint() {
     let app = test::init_service(App::new().service(detokenize)).await;
 
+    // Pre-store some data in Redis
+    store_tokenized_data("token1".to_string(), "value1".to_string());
+    store_tokenized_data("token2".to_string(), "value2".to_string());
+
     let payload = json!({
         "id": "req-33445",
         "data": {
-            "field1": "t6yh4f6",
-            "field2": "gh67ned",
+            "field1": "token1",
+            "field2": "token2",
             "field3": "invalid_token"
         }
     });
@@ -43,4 +55,9 @@ async fn test_detokenize_endpoint() {
 
     let resp = test::call_service(&app, req).await;
     assert!(resp.status().is_success());
+
+    let detokenized_data: serde_json::Value = test::read_body_json(resp).await;
+    assert_eq!(detokenized_data["data"]["field1"]["value"], "value1");
+    assert_eq!(detokenized_data["data"]["field2"]["value"], "value2");
+    assert_eq!(detokenized_data["data"]["field3"]["found"], false);
 }
