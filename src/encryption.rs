@@ -1,11 +1,11 @@
 use aes::Aes256;
 use aes::cipher::{BlockCipher, KeyInit, generic_array::GenericArray};
 use std::str;
-
-const ENCRYPTION_KEY: &[u8; 32] = b"anexampleverysecurekey1234567890";
+use crate::kms::get_encryption_key;
 
 pub fn encrypt(data: &str) -> Result<String, Box<dyn std::error::Error>> {
-    let key = GenericArray::from_slice(ENCRYPTION_KEY);
+    let encryption_key = get_encryption_key()?;
+    let key = GenericArray::from_slice(&encryption_key);
     let cipher = Aes256::new(key);
 
     let mut block = GenericArray::clone_from_slice(data.as_bytes());
@@ -15,7 +15,8 @@ pub fn encrypt(data: &str) -> Result<String, Box<dyn std::error::Error>> {
 }
 
 pub fn decrypt(data: &str) -> Result<String, Box<dyn std::error::Error>> {
-    let key = GenericArray::from_slice(ENCRYPTION_KEY);
+    let encryption_key = get_encryption_key()?;
+    let key = GenericArray::from_slice(&encryption_key);
     let cipher = Aes256::new(key);
 
     let mut block = GenericArray::clone_from_slice(&base64::decode(data)?);

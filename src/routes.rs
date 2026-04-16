@@ -1,6 +1,6 @@
 use actix_web::{post, web, HttpResponse, Responder};
 use crate::storage::{store_tokenized_data, retrieve_original_data};
-use crate::utils::generate_token;
+use crate::utils::{generate_token, validate_data_format};
 use serde::{Deserialize, Serialize};
 use std::collections::HashMap;
 
@@ -8,6 +8,7 @@ use std::collections::HashMap;
 struct TokenizeRequest {
     id: String,
     data: HashMap<String, String>,
+    format: Option<HashMap<String, String>>, // Optional format specification
 }
 
 #[derive(Serialize)]
@@ -18,6 +19,12 @@ struct TokenizeResponse {
 
 #[post("/tokenize")]
 async fn tokenize(req: web::Json<TokenizeRequest>) -> impl Responder {
+    if let Some(format) = &req.format {
+        if let Err(err) = validate_data_format(&req.data, format) {
+            return HttpResponse::BadRequest().body(format!("Invalid data format: {}", err));
+        }
+    }
+
     let mut tokenized_data = HashMap::new();
 
     for (key, value) in &req.data {
