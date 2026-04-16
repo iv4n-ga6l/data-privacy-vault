@@ -3,9 +3,15 @@ use data_privacy_vault::auth;
 use serde_json::json;
 use data_privacy_vault::routes::{tokenize, detokenize};
 use data_privacy_vault::storage::{store_tokenized_data, retrieve_original_data};
+use std::env;
+
+fn setup() {
+    env::set_var("KMS_KEY_ID", "local");
+}
 
 #[actix_web::test]
 async fn test_tokenize_with_format_validation() {
+    setup();
     let app = test::init_service(App::new().wrap(auth::AuthMiddleware {}).service(tokenize)).await;
 
     let payload = json!({
@@ -38,6 +44,7 @@ async fn test_tokenize_with_format_validation() {
 
 #[actix_web::test]
 async fn test_tokenize_with_invalid_format() {
+    setup();
     let app = test::init_service(App::new().wrap(auth::AuthMiddleware {}).service(tokenize)).await;
 
     let payload = json!({
@@ -64,6 +71,7 @@ async fn test_tokenize_with_invalid_format() {
 
 #[actix_web::test]
 async fn test_detokenize_success() {
+    setup();
     let app = test::init_service(App::new().wrap(auth::AuthMiddleware {}).service(detokenize)).await;
 
     let token = "test-token";
@@ -93,6 +101,7 @@ async fn test_detokenize_success() {
 
 #[actix_web::test]
 async fn test_detokenize_not_found() {
+    setup();
     let app = test::init_service(App::new().wrap(auth::AuthMiddleware {}).service(detokenize)).await;
 
     let payload = json!({
@@ -118,6 +127,7 @@ async fn test_detokenize_not_found() {
 
 #[actix_web::test]
 async fn test_unauthorized_access() {
+    setup();
     let app = test::init_service(
         App::new()
             .wrap(auth::AuthMiddleware {})

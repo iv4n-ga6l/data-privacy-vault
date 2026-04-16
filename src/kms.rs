@@ -17,8 +17,9 @@ fn local_encryption_key() -> Vec<u8> {
 }
 
 pub async fn get_encryption_key() -> Result<Vec<u8>, Box<dyn Error>> {
-    let Ok(key_id) = env::var("KMS_KEY_ID") else {
-        return Ok(local_encryption_key());
+    let key_id = match env::var("KMS_KEY_ID") {
+        Ok(val) if !val.is_empty() && val != "local" => val,
+        _ => return Ok(local_encryption_key()),
     };
 
     let config = aws_config::load_defaults(aws_config::BehaviorVersion::latest()).await;
